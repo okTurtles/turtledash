@@ -61,17 +61,18 @@ function isMergeableObject <T> (val: T): boolean {
   )
 }
 
-export function merge <T, U extends Partial<T>> (obj: U, src: T): U {
+export function merge <T extends object, U extends object> (obj: T, src: U): T & U {
+  const res = obj as T & U
   for (const key in src) {
     const clone = isMergeableObject(src[key]) ? cloneDeep(src[key]) : undefined
-    const x = obj[key]
+    const x = res[key]
     if (clone && x && isMergeableObject(x)) {
       merge(x, clone)
       continue
     }
-    obj[key] = clone || src[key]
+    res[key] = clone || src[key]
   }
-  return obj
+  return res
 }
 
 export function delay (msec: number): Promise<void> {
@@ -179,7 +180,10 @@ export function deepEqualJSONType (a: unknown, b: unknown): boolean {
     throw new Error(`not JSON type: ${a}`)
   }
   for (const key in a) {
-    if (!deepEqualJSONType(a[key], b[(key as unknown as keyof typeof b)])) return false
+    if (!deepEqualJSONType(
+      a[(key as unknown as keyof typeof a)],
+      b[(key as unknown as keyof typeof b)])
+    ) return false
   }
   return true
 }
@@ -192,7 +196,10 @@ export function hashableRepresentation (unsorted: unknown): unknown {
     return unsorted.map(v => hashableRepresentation(v))
   } else {
     return Object.keys(unsorted).sort().reduce((acc: [string, unknown][], curKey) => {
-      acc.push([curKey, hashableRepresentation(unsorted[curKey])])
+      acc.push([
+        curKey,
+        hashableRepresentation(unsorted[curKey as unknown as keyof typeof unsorted])
+      ])
       return acc
     }, [])
   }
@@ -208,21 +215,26 @@ export function hashableRepresentation (unsorted: unknown): unknown {
  *
  * @source underscore.js
  * @see http://unscriptable.com/2009/03/20/debouncing-javascript-methods/
- * @param {Function} function to wrap
- * @param {Number} timeout in ms (`100`)
- * @param {Boolean} whether to execute at the beginning (`false`)
+ * @param func function to wrap
+ * @param wait timeout in ms (`100`)
+ * @param immediate whether to execute at the beginning (`false`)
  * @api public
  */
-export function debounce <A, R> (func: (...args: A[]) => R, wait: number, immediate?: boolean | null): {
+export function debounce <A, R, C> (
+  func: (...args: A[]) => R,
+  wait: number,
+  immediate?: boolean | null | undefined
+) : {
   (...args: A[]): R;
   clear(): void;
   flush(): void;
 } {
-  let timeout: ReturnType<typeof setTimeout> | null,
+  let timeout: ReturnType<typeof setTimeout> | undefined,
     args: A[],
-    context,
+    context: C,
     timestamp: number,
     result: R
+
   if (wait == null) wait = 100
 
   function later () {
@@ -231,15 +243,16 @@ export function debounce <A, R> (func: (...args: A[]) => R, wait: number, immedi
     if (last < wait && last >= 0) {
       timeout = setTimeout(later, wait - last)
     } else {
-      timeout = null
+      timeout = undefined
       if (!immediate) {
         result = func.apply(context, args)
-        context = args = null
+        args = undefined as unknown as typeof args
+        context = undefined as unknown as typeof context
       }
     }
   }
 
-  const debounced = function (...args_: A[]) {
+  const debounced = function (this: C, ...args_: A[]) {
     args = args_
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     context = this
@@ -248,7 +261,8 @@ export function debounce <A, R> (func: (...args: A[]) => R, wait: number, immedi
     if (!timeout) timeout = setTimeout(later, wait)
     if (callNow) {
       result = func.apply(context, args)
-      context = args = null
+      args = undefined as unknown as typeof args
+      context = undefined as unknown as typeof context
     }
 
     return result
@@ -257,16 +271,17 @@ export function debounce <A, R> (func: (...args: A[]) => R, wait: number, immedi
   debounced.clear = function () {
     if (timeout) {
       clearTimeout(timeout)
-      timeout = null
+      timeout = undefined
     }
   }
 
   debounced.flush = function () {
     if (timeout) {
       result = func.apply(context, args)
-      context = args = null
+      args = undefined as unknown as typeof args
+      context = undefined as unknown as typeof context
       clearTimeout(timeout)
-      timeout = null
+      timeout = undefined
     }
   }
 
@@ -296,21 +311,22 @@ export function throttle <A, R> (func: (...args: A[]) => R, delay: number): (...
  * `undefined`, the `defaultValue` is returned in its place.
  *
  */
-export function get (obj: object, path: PropertyKey[], defaultValue: unknown): unknown {
+export function get <T extends object, K extends PropertyKey> (obj: T, path: K[], defaultValue: unknown): unknown {
   if (!path.length) {
     return obj
   } else if (obj == null) {
     return defaultValue
   }
 
-  let result = obj
+  let result: unknown = obj
   let i = 0
   while (result && i < path.length) {
-    result = result[path[i]]
+    result = result[path[i] as unknown as keyof typeof result]
     i++
   }
 
   return result === undefined ? defaultValue : result
 }
 
-export const has = Function.prototype.call.bind(Object.prototype.hasOwnProperty) as (o: unknown, v: PropertyKey) => boolean
+type THas = (o: unknown, v: PropertyKey) => v is keyof typeof o
+export const has = Function.prototype.call.bind(Object.prototype.hasOwnProperty) as unknown as THas
