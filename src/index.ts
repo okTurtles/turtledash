@@ -18,9 +18,13 @@ export function mapObject <T, U> (
   return Object.fromEntries(Object.entries(obj).map(fn))
 }
 
-export function pick <T> (o: T, props: (keyof T)[]): Partial<T> {
-  const x: Partial<T> = Object.create(null)
-  for (const k of props) { x[k] = o[k] }
+export function pick <T, K extends PropertyKey> (o: T, props: K[]): PropertyKey extends K ? Partial<T> : Pick<T, Extract<K, keyof T>> {
+  const x: PropertyKey extends K ? Partial<T> : Pick<T, Extract<K, keyof T>> = Object.create(null)
+  for (const k of props) {
+    if (has(o, k)) {
+      x[k] = o[k]
+    }
+  }
   return x
 }
 
@@ -38,10 +42,10 @@ export function choose <T> (array: ArrayLike<T>, indices: Iterable<number>): T[]
   return x
 }
 
-export function omit <T> (o: T, props: (keyof T)[]): Omit<T, typeof props[number]> {
+export function omit <T, K extends PropertyKey> (o: T, props: K[]): PropertyKey extends K ? Partial<T> : Omit<T, Extract<K, keyof T>> {
   const x = Object.create(null)
   for (const k in o) {
-    if (!props.includes(k)) {
+    if (!props.includes(k as unknown as K)) {
       x[k] = o[k]
     }
   }
