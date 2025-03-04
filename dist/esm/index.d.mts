@@ -4,10 +4,10 @@ export declare function mapObject<T, U>(obj: {
 } | ArrayLike<T>, fn: (value: [string, T], index: number, array: [string, T][]) => [string, U]): {
     [s: string]: U;
 };
-export declare function pick<T>(o: T, props: (keyof T)[]): Partial<T>;
+export declare function pick<T, K extends PropertyKey>(o: T, props: K[]): PropertyKey extends K ? Partial<T> : Pick<T, Extract<K, keyof T>>;
 export declare function pickWhere<T>(o: T, where: (v: T[keyof T]) => boolean): Partial<T>;
 export declare function choose<T>(array: ArrayLike<T>, indices: Iterable<number>): T[];
-export declare function omit<T>(o: T, props: (keyof T)[]): Omit<T, typeof props[number]>;
+export declare function omit<T, K extends PropertyKey>(o: T, props: K[]): PropertyKey extends K ? Partial<T> : Omit<T, Extract<K, keyof T>>;
 export declare function cloneDeep<T>(obj: T): ReturnType<typeof JSON.parse>;
 export declare function merge<T extends object, U extends object>(obj: T, src: U): T & U;
 export declare function delay(msec: number): Promise<void>;

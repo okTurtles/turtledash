@@ -13,7 +13,9 @@ export function mapObject(obj, fn) {
 export function pick(o, props) {
     const x = Object.create(null);
     for (const k of props) {
-        x[k] = o[k];
+        if (has(o, k)) {
+            x[k] = o[k];
+        }
     }
     return x;
 }
