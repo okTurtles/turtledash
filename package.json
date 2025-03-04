@@ -1,0 +1,61 @@
+{
+  "name": "turtledash",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/umd/index.cjs",
+  "module": "dist/esm/index.js",
+  "types": "dist/umd/index.d.cts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.mts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/umd/index.d.cts",
+        "default": "./dist/umd/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"ts-node/esm\", pathToFileURL(\"./\"));' src/index.test.ts",
+    "build:esm": "tsc --project tsconfig.json --declaration && mv ./dist/esm/index.d.ts ./dist/esm/index.d.mts",
+    "build:umd": "tsc --project tsconfig.umd.json --declaration && mv ./dist/umd/index.js ./dist/umd/index.cjs && mv ./dist/umd/index.d.ts ./dist/umd/index.d.cts",
+    "build": "npm run build:esm && npm run build:umd",
+    "lint": "eslint",
+    "clean": "rm -f dist/*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/okTurtles/turtledash.git"
+  },
+  "author": "okTurtles Foundation, Inc.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/okTurtles/turtledash/issues"
+  },
+  "homepage": "https://github.com/okTurtles/turtledash#readme",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "eslint-config-standard": "^17.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "eslintConfig": {
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "plugin:@typescript-eslint/recommended",
+      "standard"
+    ]
+  },
+  "eslintIgnore": [
+    "dist/*",
+    "node_modules/*",
+    "**/*.md"
+  ]
+}
