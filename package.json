@@ -1,6 +1,6 @@
 {
   "name": "turtledash",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Tiny, efficient, TypeScript utility functions inspired by Lodash.",
   "main": "dist/umd/index.cjs",
   "module": "dist/esm/index.js",
