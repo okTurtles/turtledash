@@ -159,7 +159,7 @@ export function deepEqualJSONType(a, b) {
         if (a.length !== b.length)
             return false;
     }
-    else if (a.constructor.name !== 'Object') {
+    else if (![Object.prototype, null].includes(Object.getPrototypeOf(a))) {
         throw new Error(`not JSON type: ${a}`);
     }
     for (const key in a) {
