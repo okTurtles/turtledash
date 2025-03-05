@@ -69,9 +69,9 @@ export function merge <T extends object, U extends object> (obj: T, src: U): T &
   const res = obj as T & U
   for (const key in src) {
     const clone = isMergeableObject(src[key]) ? cloneDeep(src[key]) : undefined
-    const x = res[key]
-    if (clone && x && isMergeableObject(x)) {
-      merge(x, clone)
+    let x: (T & U)[Extract<keyof U, string>]
+    if (clone && isMergeableObject((x = res[key]))) {
+      merge(x as object, clone)
       continue
     }
     res[key] = clone || src[key]

@@ -57,8 +57,8 @@ export function merge(obj, src) {
     const res = obj;
     for (const key in src) {
         const clone = isMergeableObject(src[key]) ? cloneDeep(src[key]) : undefined;
-        const x = res[key];
-        if (clone && x && isMergeableObject(x)) {
+        let x;
+        if (clone && isMergeableObject((x = res[key]))) {
             merge(x, clone);
             continue;
         }
