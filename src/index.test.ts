@@ -56,9 +56,9 @@ describe('Test turtledash', () => {
   })
   it('should merge', () => {
     const a = { a: 'taco', b: { a: 'burrito', b: 'combo' }, c: [20] }
-    const b = { a: 'churro', b: { c: 'platter' } }
+    const b = { a: 'churro', b: { c: 'platter' }, d: { f: 123 } }
     const c = _.merge(a, b)
-    assert.deepEqual(c, { a: 'churro', b: { a: 'burrito', b: 'combo', c: 'platter' }, c: [20] })
+    assert.deepEqual(c, { a: 'churro', b: { a: 'burrito', b: 'combo', c: 'platter' }, c: [20], d: { f: 123 } })
   })
   it('should flatten', () => {
     const a = [1, [2, [3, 4]], 5]
