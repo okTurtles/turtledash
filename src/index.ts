@@ -68,11 +68,11 @@ function isMergeableObject <T> (val: T): boolean {
 export function merge <T extends object, U extends object> (obj: T, src: U): T & U {
   const res = obj as T & U
   for (const key in src) {
+    const clone = isMergeableObject(src[key]) ? cloneDeep(src[key]) : undefined
+    let x: (T & U)[Extract<keyof U, string>]
     // `has` check needed to avoid using inherited properties. This is probably
     // closer to the behaviour one expects and also avoids prototype pollution.
-    const clone = has(obj, key) && isMergeableObject(src[key]) ? cloneDeep(src[key]) : undefined
-    let x: (T & U)[Extract<keyof U, string>]
-    if (clone && isMergeableObject((x = res[key]))) {
+    if (clone && has(obj, key) && isMergeableObject((x = res[key]))) {
       merge(x as object, clone)
       continue
     }

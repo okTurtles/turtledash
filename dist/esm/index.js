@@ -56,11 +56,11 @@ function isMergeableObject(val) {
 export function merge(obj, src) {
     const res = obj;
     for (const key in src) {
+        const clone = isMergeableObject(src[key]) ? cloneDeep(src[key]) : undefined;
+        let x;
         // `has` check needed to avoid using inherited properties. This is probably
         // closer to the behaviour one expects and also avoids prototype pollution.
-        const clone = has(obj, key) && isMergeableObject(src[key]) ? cloneDeep(src[key]) : undefined;
-        let x;
-        if (clone && isMergeableObject((x = res[key]))) {
+        if (clone && has(obj, key) && isMergeableObject((x = res[key]))) {
             merge(x, clone);
             continue;
         }
