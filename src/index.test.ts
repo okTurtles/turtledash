@@ -83,4 +83,11 @@ describe('Test turtledash', () => {
     assert.ok(_.deepEqualJSONType({ a: 5, b: ['adsf'] }, { b: ['adsf'], a: 5 }))
     assert.ok(!_.deepEqualJSONType({ a: 5, b: ['adsf', {}] }, { b: ['adsf'], a: 5 }))
   })
+  it('merge does not pollute Object prototype', () => {
+    const vector = JSON.parse('{"__proto__":{"injected":1}}')
+    const target = {}
+    const poulluted: Record<PropertyKey, unknown> = {}
+    _.merge(target, vector)
+    assert.ok(typeof poulluted.injected === 'undefined')
+  })
 })
