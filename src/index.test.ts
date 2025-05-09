@@ -89,5 +89,6 @@ describe('Test turtledash', () => {
     const poulluted: Record<PropertyKey, unknown> = {}
     _.merge(target, vector)
     assert.ok(typeof poulluted.injected === 'undefined')
+    assert.deepEqual(target, { ['__proto__']: { injected: 1 } })
   })
 })
