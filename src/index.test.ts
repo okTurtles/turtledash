@@ -56,9 +56,9 @@ describe('Test turtledash', () => {
   })
   it('should merge', () => {
     const a = { a: 'taco', b: { a: 'burrito', b: 'combo' }, c: [20] }
-    const b = { a: 'churro', b: { c: 'platter' } }
+    const b = { a: 'churro', b: { c: 'platter' }, d: { f: 123 } }
     const c = _.merge(a, b)
-    assert.deepEqual(c, { a: 'churro', b: { a: 'burrito', b: 'combo', c: 'platter' }, c: [20] })
+    assert.deepEqual(c, { a: 'churro', b: { a: 'burrito', b: 'combo', c: 'platter' }, c: [20], d: { f: 123 } })
   })
   it('should flatten', () => {
     const a = [1, [2, [3, 4]], 5]
@@ -82,5 +82,13 @@ describe('Test turtledash', () => {
     assert.throws(() => _.deepEqualJSONType(new String('asdf'), new String('asdf'))) // eslint-disable-line
     assert.ok(_.deepEqualJSONType({ a: 5, b: ['adsf'] }, { b: ['adsf'], a: 5 }))
     assert.ok(!_.deepEqualJSONType({ a: 5, b: ['adsf', {}] }, { b: ['adsf'], a: 5 }))
+  })
+  it('merge does not pollute Object prototype', () => {
+    const vector = JSON.parse('{"__proto__":{"injected":1}}')
+    const target = {}
+    const poulluted: Record<PropertyKey, unknown> = {}
+    _.merge(target, vector)
+    assert.ok(typeof poulluted.injected === 'undefined')
+    assert.deepEqual(target, { ['__proto__']: { injected: 1 } })
   })
 })
