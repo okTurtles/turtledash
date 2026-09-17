@@ -77,9 +77,9 @@ describe('Test turtledash', () => {
     assert.ok(_.deepEqualJSONType(4, 4))
     assert.ok(!_.deepEqualJSONType(4, 5))
     assert.ok(!_.deepEqualJSONType(4, new Number(4))) // eslint-disable-line
-    assert.throws(() => _.deepEqualJSONType(new Number(4), new Number(4))) // eslint-disable-line
+    assert.ok(!_.deepEqualJSONType(new Number(4), new Number(4))) // eslint-disable-line
     assert.ok(_.deepEqualJSONType('asdf', 'asdf'))
-    assert.throws(() => _.deepEqualJSONType(new String('asdf'), new String('asdf'))) // eslint-disable-line
+    assert.ok(!_.deepEqualJSONType(new String('asdf'), new String('asdf'))) // eslint-disable-line
     assert.ok(_.deepEqualJSONType({ a: 5, b: ['adsf'] }, { b: ['adsf'], a: 5 }))
     assert.ok(!_.deepEqualJSONType({ a: 5, b: ['adsf', {}] }, { b: ['adsf'], a: 5 }))
   })

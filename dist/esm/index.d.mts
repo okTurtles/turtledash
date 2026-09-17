@@ -23,6 +23,8 @@ export declare function uniq<T>(array: T[]): T[];
 export declare function union<T>(...arrays: T[][]): T[];
 export declare function intersection<T>(a1: T[], ...arrays: T[][]): T[];
 export declare function difference<T>(a1: T[], ...arrays: T[][]): T[];
+export declare function isPlainObject(v: unknown): v is Record<string, unknown>;
+export declare function readJSONIndex(arr: unknown[], i: number): unknown;
 export declare function deepEqualJSONType(a: unknown, b: unknown): boolean;
 export declare function hashableRepresentation(unsorted: unknown): unknown;
 /**

@@ -34,6 +34,8 @@
     exports.union = union;
     exports.intersection = intersection;
     exports.difference = difference;
+    exports.isPlainObject = isPlainObject;
+    exports.readJSONIndex = readJSONIndex;
     exports.deepEqualJSONType = deepEqualJSONType;
     exports.hashableRepresentation = hashableRepresentation;
     exports.debounce = debounce;
@@ -197,25 +199,88 @@
         const a2 = Array.prototype.concat.apply([], arrays);
         return a1.filter(v => a2.indexOf(v) === -1);
     }
+    function isPlainObject(v) {
+        if (v === null || typeof v !== 'object')
+            return false;
+        if (Array.isArray(v))
+            return false;
+        const proto = Object.getPrototypeOf(v);
+        return proto === Object.prototype || proto === null;
+    }
+    function shallowEqualPrimitives(a, b) {
+        // Used only when we've already established neither side is a container
+        // we'd recurse into. NaN-aware so NaN equals NaN (avoids spurious diffs).
+        if (a === b)
+            return true;
+        if (typeof a === 'number' && typeof b === 'number' &&
+            Number.isNaN(a) && Number.isNaN(b))
+            return true;
+        return false;
+    }
+    // Read array element `i`, reporting a hole (a missing index in a sparse
+    // array) as `null`.
+    //
+    // JSON has no representation for a hole: `JSON.stringify` writes `null` in
+    // its place. A plain `arr[i]` read yields `undefined` instead, which the
+    // diff interprets as "index absent" and turns into an `add` / `remove` —
+    // ops that `defaultApplyPatch` applies with `splice`, shifting every later
+    // index and desynchronising the reconstructed state from the real one. So
+    // every traversal in this module reads holes as `null`, which is both what
+    // persistence produces and what the "plain JSON state" contract implies.
+    function readJSONIndex(arr, i) {
+        return i in arr ? arr[i] : null;
+    }
+    // Deep equality using exactly the same notion of "changed" as
+    // `defaultDiff`: `a` and `b` are equal iff `defaultDiff(a, b)` would be
+    // empty. Keeping the two in lock-step matters because this predicate
+    // decides whether a change hidden behind a constant redactor gets its own
+    // journal entry; a looser or stricter notion would either invent churn or
+    // keep hiding real changes.
+    //
+    // Notably: `undefined` on one side only is a change (the diff emits
+    // add/remove), NaN equals NaN, array holes compare as `null` (see
+    // `readIndex`), and non-plain containers (Date, Map, class instances) are
+    // only equal by reference — mirroring `defaultDiff`, which emits a
+    // wholesale `replace` for them.
     function deepEqualJSONType(a, b) {
         if (a === b)
             return true;
-        if (a == null || b == null || typeof (a) !== typeof (b))
+        if (a === undefined || b === undefined)
             return false;
-        if (typeof a !== 'object')
-            return a === b;
-        if (Array.isArray(a) && Array.isArray(b)) {
-            if (a.length !== b.length)
+        const aIsArr = Array.isArray(a);
+        const bIsArr = Array.isArray(b);
+        const aIsObj = isPlainObject(a);
+        const bIsObj = isPlainObject(b);
+        if (aIsArr !== bIsArr || aIsObj !== bIsObj)
+            return false;
+        if (aIsArr && bIsArr) {
+            const aArr = a;
+            const bArr = b;
+            if (aArr.length !== bArr.length)
                 return false;
+            for (let i = 0; i < aArr.length; i++) {
+                if (!deepEqualJSONType(readJSONIndex(aArr, i), readJSONIndex(bArr, i)))
+                    return false;
+            }
+            return true;
         }
-        else if (![Object.prototype, null].includes(Object.getPrototypeOf(a))) {
-            throw new Error(`not JSON type: ${a}`);
-        }
-        for (const key in a) {
-            if (!deepEqualJSONType(a[key], b[key]))
+        if (aIsObj && bIsObj) {
+            const aObj = a;
+            const bObj = b;
+            const aKeys = Object.keys(aObj);
+            if (aKeys.length !== Object.keys(bObj).length)
                 return false;
+            for (const k of aKeys) {
+                // Own properties only — never let the prototype chain make two
+                // states look alike.
+                if (!(0, exports.has)(bObj, k))
+                    return false;
+                if (!deepEqualJSONType(aObj[k], bObj[k]))
+                    return false;
+            }
+            return true;
         }
-        return true;
+        return shallowEqualPrimitives(a, b);
     }
     function hashableRepresentation(unsorted) {
         if (!unsorted || typeof unsorted !== 'object') {
