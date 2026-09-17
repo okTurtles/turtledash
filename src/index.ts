@@ -52,8 +52,46 @@ export function omit <T, K extends PropertyKey> (o: T, props: K[]): PropertyKey 
   return x
 }
 
+// Define an own data property without invoking inherited setters, including
+// the `__proto__` accessor, so writing a key does not change the prototype.
+export function safeDefine (obj: Record<string, unknown>, key: string, value: unknown): void {
+  Object.defineProperty(obj, key, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true
+  })
+}
+
 export function cloneDeep <T> (obj: T): ReturnType<typeof JSON.parse> {
   return JSON.parse(JSON.stringify(obj))
+}
+
+// Clone arrays and plain objects without a JSON serialization round trip,
+// preserving explicit `undefined` values. Functions and non-plain objects
+// are returned by reference. Circular arrays and plain objects are unsupported.
+export function cloneValue <T> (v: T): T {
+  if (v === null || typeof v !== 'object') return v
+  if (Array.isArray(v)) {
+    // Read each index because `Array.prototype.map` would preserve holes
+    // instead of normalizing them to `null` in a dense copy.
+    const src = v as unknown[]
+    const out: unknown[] = new Array(src.length)
+    for (let i = 0; i < src.length; i++) {
+      out[i] = cloneValue(readJSONIndex(src, i))
+    }
+    return (out as unknown) as T
+  }
+  if (isPlainObject(v)) {
+    // Preserve null-prototype objects so the clone does not gain inherited
+    // properties from `Object.prototype`.
+    const out: Record<string, unknown> = Object.create(Object.getPrototypeOf(v))
+    for (const k of Object.keys(v)) {
+      safeDefine(out, k, cloneValue((v as Record<string, unknown>)[k]))
+    }
+    return (out as unknown) as T
+  }
+  return v
 }
 
 function isMergeableObject <T> (val: T): boolean {
