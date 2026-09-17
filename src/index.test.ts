@@ -82,6 +82,16 @@ describe('Test turtledash', () => {
     assert.ok(!_.deepEqualJSONType(new String('asdf'), new String('asdf'))) // eslint-disable-line
     assert.ok(_.deepEqualJSONType({ a: 5, b: ['adsf'] }, { b: ['adsf'], a: 5 }))
     assert.ok(!_.deepEqualJSONType({ a: 5, b: ['adsf', {}] }, { b: ['adsf'], a: 5 }))
+    assert.ok(!_.deepEqualJSONType({}, { foo: 1 }))
+    assert.ok(!_.deepEqualJSONType({ foo: 1 }, {}))
+    assert.ok(!_.deepEqualJSONType({ a: 1 }, { a: 1, b: 2 }))
+    assert.ok(_.deepEqualJSONType(NaN, NaN))
+    assert.ok(!_.deepEqualJSONType(NaN, 4))
+    const sparse = [1, null, 3]
+    delete sparse[1]
+    assert.ok(_.deepEqualJSONType(sparse, [1, null, 3]))
+    assert.ok(!_.deepEqualJSONType([undefined], [null]))
+    assert.ok(!_.deepEqualJSONType({ a: undefined }, {}))
   })
   it('merge does not pollute Object prototype', () => {
     const vector = JSON.parse('{"__proto__":{"injected":1}}')

@@ -202,31 +202,14 @@ function shallowEqualPrimitives (a: unknown, b: unknown): boolean {
 }
 
 // Read array element `i`, reporting a hole (a missing index in a sparse
-// array) as `null`.
-//
-// JSON has no representation for a hole: `JSON.stringify` writes `null` in
-// its place. A plain `arr[i]` read yields `undefined` instead, which the
-// diff interprets as "index absent" and turns into an `add` / `remove` —
-// ops that `defaultApplyPatch` applies with `splice`, shifting every later
-// index and desynchronising the reconstructed state from the real one. So
-// every traversal in this module reads holes as `null`, which is both what
-// persistence produces and what the "plain JSON state" contract implies.
+// array) as `null`, since JSON.stringify writes `null` for holes.
 export function readJSONIndex (arr: unknown[], i: number): unknown {
   return i in arr ? arr[i] : null
 }
 
-// Deep equality using exactly the same notion of "changed" as
-// `defaultDiff`: `a` and `b` are equal iff `defaultDiff(a, b)` would be
-// empty. Keeping the two in lock-step matters because this predicate
-// decides whether a change hidden behind a constant redactor gets its own
-// journal entry; a looser or stricter notion would either invent churn or
-// keep hiding real changes.
-//
-// Notably: `undefined` on one side only is a change (the diff emits
-// add/remove), NaN equals NaN, array holes compare as `null` (see
-// `readIndex`), and non-plain containers (Date, Map, class instances) are
-// only equal by reference — mirroring `defaultDiff`, which emits a
-// wholesale `replace` for them.
+// Deep equality for JSON-compatible values. Property order is ignored, NaN
+// equals NaN, and array holes compare as `null`. `undefined` on one side only
+// is never equal, while non-plain objects compare by reference.
 export function deepEqualJSONType (a: unknown, b: unknown): boolean {
   if (a === b) return true
   if (a === undefined || b === undefined) return false
