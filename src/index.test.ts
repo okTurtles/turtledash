@@ -148,6 +148,20 @@ describe('Test turtledash', () => {
       assert.deepEqual(source, { items: [{ count: 1, nested: [2] }], empty: {} })
       assert.deepEqual(_.cloneValue([]), [])
     })
+    it('normalizes array subclasses to plain arrays', () => {
+      class ExampleArray extends Array<{ count: number }> {
+        customMethod () {
+          return this.length
+        }
+      }
+      const source = new ExampleArray()
+      source.push({ count: 1 })
+      const copy = _.cloneValue(source)
+      assert.equal(Object.getPrototypeOf(copy), Array.prototype)
+      assert.ok(!(copy instanceof ExampleArray))
+      assert.deepEqual(copy, [{ count: 1 }])
+      assert.notEqual(copy[0], source[0])
+    })
     it('returns primitive values unchanged', () => {
       const values = [null, undefined, true, false, 0, -0, 42, NaN, Infinity, '', 'value', BigInt(1), Symbol('value')]
       for (const value of values) {

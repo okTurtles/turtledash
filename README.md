@@ -42,7 +42,10 @@ Creates an object with properties that satisfy the provided predicate function.
 Creates an object composed of properties not included in the provided array.
 
 #### `cloneDeep<T>(obj)`
-Creates a deep clone of the value using `JSON.parse(JSON.stringify(obj))`.
+Creates a deep clone of the value using `JSON.parse(JSON.stringify(obj))`. Use
+this only for JSON-compatible values because `undefined`, functions, `Date`,
+`Map`, `Set`, symbols, and other richer values can be lost or changed. Use
+`cloneValue` when those values must be preserved.
 
 #### `cloneValue<T>(v)`
 Recursively clones arrays and plain objects without JSON serialization. Plain
@@ -53,8 +56,10 @@ become `null`, producing a dense array; additional array properties are not copi
 
 Primitives are returned unchanged. Functions and non-plain objects, including
 `Date`, `Map`, `Set`, and class instances, are returned by reference, even when
-nested. Literal `__proto__` keys are copied safely without changing the clone's
-prototype. Circular references through arrays or plain objects are not supported.
+nested. As a limitation, array subclasses are normalized to plain arrays, so
+their custom prototypes and methods are not retained. Literal `__proto__` keys
+are copied safely without changing the clone's prototype. Circular references
+through arrays or plain objects are not supported.
 
 ```ts
 const original = { items: [{ count: 1 }], optional: undefined };
@@ -164,11 +169,12 @@ Returns `true` when `obj` has `key` as an own property.
 ## Examples
 
 ```ts
-import { 
-  mapValues, 
-  pick, 
-  debounce, 
-  randomIntFromRange 
+import {
+  mapValues,
+  pick,
+  debounce,
+  randomIntFromRange,
+  has
 } from 'turtledash';
 
 // Transform all values in an object

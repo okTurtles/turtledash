@@ -54,12 +54,16 @@ export function safeDefine(obj, key, value) {
         configurable: true
     });
 }
+// Deep clone via a JSON round trip. Only use for JSON-compatible values:
+// `undefined`, functions, `Date`, `Map`, `Set`, symbols, etc. are lost or
+// corrupted. For anything richer, use `cloneValue`.
 export function cloneDeep(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
 // Clone arrays and plain objects without a JSON serialization round trip,
-// preserving explicit `undefined` values. Functions and non-plain objects
-// are returned by reference. Circular arrays and plain objects are unsupported.
+// preserving explicit `undefined` values. Unlike `cloneDeep`, this keeps
+// richer values by reference. Circular arrays and plain objects are unsupported.
+// Array subclasses are normalized to plain arrays.
 export function cloneValue(v) {
     if (v === null || typeof v !== 'object')
         return v;
@@ -101,16 +105,8 @@ export function merge(obj, src) {
             merge(x, clone);
             continue;
         }
-        // The following simpler formulation isn't used because it can lead to
-        // prototype pollution. Instead, we use `Object.defineProperty`, which
-        // doesn't have this issue.
-        // // res[key] = clone || src[key] // DO NOT USE!
-        Object.defineProperty(res, key, {
-            configurable: true,
-            enumerable: true,
-            value: clone || src[key],
-            writable: true
-        });
+        // Use safeDefine so literal `__proto__` keys cannot pollute the prototype.
+        safeDefine(res, key, clone || src[key]);
     }
     return res;
 }
