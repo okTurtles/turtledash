@@ -42,7 +42,51 @@ Creates an object with properties that satisfy the provided predicate function.
 Creates an object composed of properties not included in the provided array.
 
 #### `cloneDeep<T>(obj)`
-Creates a deep clone of the value.
+Creates a deep clone of the value using `JSON.parse(JSON.stringify(obj))`. Use
+this only for JSON-compatible values because `undefined`, functions, `Date`,
+`Map`, `Set`, symbols, and other richer values can be lost or changed. Use
+`cloneValue` when those values must be preserved.
+
+#### `cloneValue<T>(v)`
+Recursively clones arrays and plain objects without JSON serialization. Plain
+objects retain their `Object.prototype` or `null` prototype, and only their own
+enumerable string-keyed properties are copied. Explicit `undefined` values are
+preserved, including object properties and array elements. Sparse-array holes
+become `null`, producing a dense array; additional array properties are not copied.
+
+Primitives are returned unchanged. Functions and non-plain objects, including
+`Date`, `Map`, `Set`, and class instances, are returned by reference, even when
+nested. As a limitation, array subclasses are normalized to plain arrays, so
+their custom prototypes and methods are not retained. Literal `__proto__` keys
+are copied safely without changing the clone's prototype. Circular references
+through arrays or plain objects are not supported.
+
+```ts
+const original = { items: [{ count: 1 }], optional: undefined };
+const copy = cloneValue(original);
+copy.items[0].count = 2;
+original.items[0].count; // 1
+has(copy, 'optional'); // true
+
+cloneValue(new Array(2)); // [null, null]
+cloneValue([undefined]); // [undefined]
+```
+
+#### `safeDefine(obj, key, value)`
+Defines or replaces an own data property on `obj` with `writable`, `enumerable`,
+and `configurable` all set to `true`. Mutates `obj` and returns `undefined`.
+Setters are not invoked, so a literal `__proto__` key can be stored without
+changing the object's prototype. Also works with null-prototype objects.
+Like `Object.defineProperty`, it throws if the property cannot be defined, such
+as when adding a key to a non-extensible object or replacing a non-configurable
+property. The value is stored as-is, without cloning.
+
+```ts
+const target = {};
+safeDefine(target, '__proto__', { value: 1 });
+Object.getPrototypeOf(target) === Object.prototype; // true
+has(target, '__proto__'); // true
+```
 
 #### `merge<T, U>(obj, src)`
 Recursively merges own properties of the source object into the target object.
@@ -125,11 +169,12 @@ Returns `true` when `obj` has `key` as an own property.
 ## Examples
 
 ```ts
-import { 
-  mapValues, 
-  pick, 
-  debounce, 
-  randomIntFromRange 
+import {
+  mapValues,
+  pick,
+  debounce,
+  randomIntFromRange,
+  has
 } from 'turtledash';
 
 // Transform all values in an object

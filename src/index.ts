@@ -52,8 +52,50 @@ export function omit <T, K extends PropertyKey> (o: T, props: K[]): PropertyKey 
   return x
 }
 
+// Define an own data property without invoking inherited setters, including
+// the `__proto__` accessor, so writing a key does not change the prototype.
+export function safeDefine (obj: object, key: PropertyKey, value: unknown): void {
+  Object.defineProperty(obj, key, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true
+  })
+}
+
+// Deep clone via a JSON round trip. Only use for JSON-compatible values:
+// `undefined`, functions, `Date`, `Map`, `Set`, symbols, etc. are lost or
+// corrupted. For anything richer, use `cloneValue`.
 export function cloneDeep <T> (obj: T): ReturnType<typeof JSON.parse> {
   return JSON.parse(JSON.stringify(obj))
+}
+
+// Clone arrays and plain objects without a JSON serialization round trip,
+// preserving explicit `undefined` values. Unlike `cloneDeep`, this keeps
+// richer values by reference. Circular arrays and plain objects are unsupported.
+// Array subclasses are normalized to plain arrays.
+export function cloneValue <T> (v: T): T {
+  if (v === null || typeof v !== 'object') return v
+  if (Array.isArray(v)) {
+    // Read each index because `Array.prototype.map` would preserve holes
+    // instead of normalizing them to `null` in a dense copy.
+    const src = v as unknown[]
+    const out: unknown[] = new Array(src.length)
+    for (let i = 0; i < src.length; i++) {
+      out[i] = cloneValue(readJSONIndex(src, i))
+    }
+    return (out as unknown) as T
+  }
+  if (isPlainObject(v)) {
+    // Preserve null-prototype objects so the clone does not gain inherited
+    // properties from `Object.prototype`.
+    const out: Record<string, unknown> = Object.create(Object.getPrototypeOf(v))
+    for (const k of Object.keys(v)) {
+      safeDefine(out, k, cloneValue((v as Record<string, unknown>)[k]))
+    }
+    return (out as unknown) as T
+  }
+  return v
 }
 
 function isMergeableObject <T> (val: T): boolean {
@@ -76,16 +118,8 @@ export function merge <T extends object, U extends object> (obj: T, src: U): T &
       merge(x as object, clone)
       continue
     }
-    // The following simpler formulation isn't used because it can lead to
-    // prototype pollution. Instead, we use `Object.defineProperty`, which
-    // doesn't have this issue.
-    // // res[key] = clone || src[key] // DO NOT USE!
-    Object.defineProperty(res, key, {
-      configurable: true,
-      enumerable: true,
-      value: clone || src[key],
-      writable: true
-    })
+    // Use safeDefine so literal `__proto__` keys cannot pollute the prototype.
+    safeDefine(res, key, clone || src[key])
   }
   return res
 }
