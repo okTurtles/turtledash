@@ -97,7 +97,18 @@ Returns a random element from an array.
 Creates a function that linearly scales a value from one range to another.
 
 #### `deepEqualJSONType(a, b)`
-Performs a deep equality check on JSON-compatible objects.
+Performs a deep equality check tailored to JSON-compatible values. Property
+order is ignored, `NaN` equals `NaN`, sparse-array holes compare as `null`,
+`undefined` is never equal to any other value, and non-plain objects such as
+`Date` and class instances are compared by reference instead of throwing.
+
+#### `isPlainObject(v)`
+Returns `true` for objects whose prototype is `Object.prototype` or `null`.
+Arrays and `null` return `false`.
+
+#### `readJSONIndex(arr, i)`
+Reads `arr[i]`, reporting a sparse-array hole as `null`, mirroring
+`JSON.stringify`.
 
 #### `hashableRepresentation(unsorted)`
 Creates a consistently sortable representation of an object for hashing purposes.
@@ -107,6 +118,9 @@ Creates a debounced function that delays invoking the provided function.
 
 #### `throttle<A, R>(func, delay)`
 Creates a throttled function that only invokes the provided function at most once per specified interval.
+
+#### `has(obj, key)`
+Returns `true` when `obj` has `key` as an own property.
 
 ## Examples
 

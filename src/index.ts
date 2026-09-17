@@ -185,22 +185,62 @@ export function difference <T> (a1: T[], ...arrays: T[][]): T[] {
   return a1.filter(v => a2.indexOf(v) === -1)
 }
 
+export function isPlainObject (v: unknown): v is Record<string, unknown> {
+  if (v === null || typeof v !== 'object') return false
+  if (Array.isArray(v)) return false
+  const proto = Object.getPrototypeOf(v)
+  return proto === Object.prototype || proto === null
+}
+
+function shallowEqualPrimitives (a: unknown, b: unknown): boolean {
+  // Used only when we've already established neither side is a container
+  // we'd recurse into. NaN-aware so NaN equals NaN (avoids spurious diffs).
+  if (a === b) return true
+  if (typeof a === 'number' && typeof b === 'number' &&
+      Number.isNaN(a) && Number.isNaN(b)) return true
+  return false
+}
+
+// Read array element `i`, reporting a hole (a missing index in a sparse
+// array) as `null`, since JSON.stringify writes `null` for holes.
+export function readJSONIndex (arr: unknown[], i: number): unknown {
+  return i in arr ? arr[i] : null
+}
+
+// Deep equality for JSON-compatible values. Property order is ignored, NaN
+// equals NaN, and array holes compare as `null`. `undefined` on one side only
+// is never equal, while non-plain objects compare by reference.
 export function deepEqualJSONType (a: unknown, b: unknown): boolean {
   if (a === b) return true
-  if (a == null || b == null || typeof (a) !== typeof (b)) return false
-  if (typeof a !== 'object') return a === b
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false
-  } else if (![Object.prototype, null].includes(Object.getPrototypeOf(a))) {
-    throw new Error(`not JSON type: ${a}`)
+  if (a === undefined || b === undefined) return false
+  const aIsArr = Array.isArray(a)
+  const bIsArr = Array.isArray(b)
+  const aIsObj = isPlainObject(a)
+  const bIsObj = isPlainObject(b)
+  if (aIsArr !== bIsArr || aIsObj !== bIsObj) return false
+  if (aIsArr && bIsArr) {
+    const aArr = a as unknown[]
+    const bArr = b as unknown[]
+    if (aArr.length !== bArr.length) return false
+    for (let i = 0; i < aArr.length; i++) {
+      if (!deepEqualJSONType(readJSONIndex(aArr, i), readJSONIndex(bArr, i))) return false
+    }
+    return true
   }
-  for (const key in a) {
-    if (!deepEqualJSONType(
-      a[(key as unknown as keyof typeof a)],
-      b[(key as unknown as keyof typeof b)])
-    ) return false
+  if (aIsObj && bIsObj) {
+    const aObj = a as Record<string, unknown>
+    const bObj = b as Record<string, unknown>
+    const aKeys = Object.keys(aObj)
+    if (aKeys.length !== Object.keys(bObj).length) return false
+    for (const k of aKeys) {
+      // Own properties only — never let the prototype chain make two
+      // states look alike.
+      if (!has(bObj, k)) return false
+      if (!deepEqualJSONType(aObj[k], bObj[k])) return false
+    }
+    return true
   }
-  return true
+  return shallowEqualPrimitives(a, b)
 }
 
 export function hashableRepresentation (unsorted: unknown): unknown {

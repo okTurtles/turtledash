@@ -3,6 +3,7 @@
     "target": "es6",
     "module": "esnext",
     "moduleResolution": "node",
+    "rootDir": "src",
     "outDir": "dist/esm",
     "strict": true,
     "strictNullChecks": true,
